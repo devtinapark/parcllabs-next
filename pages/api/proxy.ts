@@ -34,8 +34,12 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
     console.log("URL:", url.toString()); // Debug: log the URL used
     res.status(200).json(data);
   } catch (error) {
-    // Handle errors
-    res.status(500).json({ error: error.message });
+    if (error instanceof Error) {
+      res.status(500).json({ error: error.message });
+    } else {
+      // Handle unexpected error types
+      res.status(500).json({ error: "An unknown error occurred" });
+    }
   }
 };
 
