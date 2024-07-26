@@ -1,9 +1,9 @@
-import { useEffect } from "react";
-import Image from "next/image";
+import React, { useState } from "react";
 import { Inter } from "next/font/google";
-import { GetStaticProps } from "next";
+import useSWR from 'swr';
 import DualAxisChart from "@/charting/default_charts";
 import { defaultStyleConfig, SIZE_CONFIG } from "@/charting/utils";
+import { STATE_ABBREVIATIONS, STATE_FIPS_CODES, LOCATION_TYPES, REGIONS } from "@/config/constants";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -23,92 +23,217 @@ interface DataPoint {
   "Total Supply": number;
 }
 
-const TEMPORARY_DATA: ChartData = {
-  date: ["2024-01-01", "2024-02-01", "2024-03-01"],
-  "% Price Drops": [5, 10, 15],
-  "Total Supply": [1000, 800, 600],
+interface SearchParams {
+  query: string;
+  locationType: string;
+  region: string;
+  stateAbbreviation: string;
+  stateFipsCode: string;
+  parclId: number | null;
+  geoid: string;
+  sortBy: string;
+  sortOrder: string;
+  limit: number;
+  offset: number;
+}
+
+const fetcher = (url: string) => {
+  return fetch(url, {
+    headers: {
+      'Authorization': `Bearer ${process.env.NEXT_PUBLIC_PARCLLABS_API_KEY}`,
+      'Accept': 'application/json',
+    }
+  }).then(res => res.json());
 };
 
-// Convert ChartData to an array of DataPoints
-const convertToDataPoints = (data: ChartData): DataPoint[] => {
-  return data.date.map((date, index) => ({
-    date,
-    "% Price Drops": data["% Price Drops"][index],
-    "Total Supply": data["Total Supply"][index],
-  }));
-};
+const buildQueryString = (params: SearchParams) => {
+  const queryParams: Record<string, string> = {};
 
-const dataPoints = convertToDataPoints(TEMPORARY_DATA);
+  if (params.query) queryParams.query = params.query;
+  if (params.locationType !== 'ALL') queryParams.location_type = params.locationType;
+  if (params.region !== 'ALL') queryParams.region = params.region;
+  if (params.stateAbbreviation !== 'ALL') queryParams.state_abbreviation = params.stateAbbreviation;
+  if (params.stateFipsCode !== 'ALL') queryParams.state_fips_code = params.stateFipsCode;
+  if (params.parclId !== null) queryParams.parcl_id = params.parclId.toString();
+  if (params.geoid) queryParams.geoid = params.geoid;
+  if (params.sortBy) queryParams.sort_by = params.sortBy;
+  if (params.sortOrder) queryParams.sort_order = params.sortOrder;
+  queryParams.limit = params.limit.toString();
+  queryParams.offset = params.offset.toString();
+
+  return new URLSearchParams(queryParams).toString();
+};
 
 export default function Home({ data }: Props) {
+  const [searchParams, setSearchParams] = useState<SearchParams>({
+    query: "",
+    locationType: "ALL",
+    region: "ALL",
+    stateAbbreviation: "ALL",
+    stateFipsCode: "ALL",
+    parclId: null,
+    geoid: "",
+    sortBy: "TOTAL_POPULATION",
+    sortOrder: "DESC",
+    limit: 12,
+    offset: 0,
+  });
+
+  const [fetchData, setFetchData] = useState<boolean>(false);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setSearchParams((prevParams) => ({
+      ...prevParams,
+      [name]: value,
+    }));
+  };
+
+  const handleFetchData = () => {
+    setFetchData(true); // Trigger data fetching when button is clicked
+  };
+
+  const queryString = buildQueryString(searchParams);
+
+  // Conditionally fetch data based on fetchData state
+  const { data: fetchedData, error } = useSWR(
+    fetchData ? `/api/proxy?${queryString}` : null, // Only fetch if fetchData is true
+    fetcher
+  );
+
+  if (error) return <div>Failed to load data</div>;
+  if (!fetchedData && fetchData) return <div>Loading...</div>; // Show loading only when fetchData is true
+
   return (
-    <main
-      className={`flex min-h-screen flex-col items-center justify-between p-24 ${inter.className}`}
-    >
-      <div className="z-10 max-w-5xl w-full items-center justify-between font-mono text-sm lg:flex"></div>
-      <div className="relative flex place-items-center before:absolute before:h-[300px] before:w-full sm:before:w-[480px] before:-translate-x-1/2 before:rounded-full before:bg-gradient-radial before:from-white before:to-transparent before:blur-2xl before:content-[''] after:absolute after:-z-20 after:h-[180px] after:w-full sm:after:w-[240px] after:translate-x-1/3 after:bg-gradient-conic after:from-sky-200 after:via-blue-200 after:blur-2xl after:content-[''] before:dark:bg-gradient-to-br before:dark:from-transparent before:dark:to-blue-700/10 after:dark:from-sky-900 after:dark:via-[#0141ff]/40 before:lg:h-[360px]">
-        <Image
-          className="relative dark:drop-shadow-[0_0_0.3rem_#ffffff70] dark:invert"
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
+    <main className={`flex min-h-screen flex-col items-center justify-between p-24 ${inter.className}`}>
+      <div className="z-10 max-w-5xl w-full items-center justify-between font-mono text-sm lg:flex">
+        <form>
+          <div>
+            <label htmlFor="query">Search Query:</label>
+            <input
+              type="text"
+              id="query"
+              name="query"
+              value={searchParams.query}
+              onChange={handleChange}
+              placeholder="Ex: New York"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="locationType">Location Type:</label>
+            <select
+              id="locationType"
+              name="locationType"
+              value={searchParams.locationType}
+              onChange={handleChange}
+            >
+              {LOCATION_TYPES.map((type) => (
+                <option key={type} value={type}>
+                  {type}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label htmlFor="region">Region:</label>
+            <select
+              id="region"
+              name="region"
+              value={searchParams.region}
+              onChange={handleChange}
+            >
+              {REGIONS.map((region) => (
+                <option key={region} value={region}>
+                  {region.replace('_', ' ')}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label htmlFor="stateAbbreviation">State Abbreviation:</label>
+            <select
+              id="stateAbbreviation"
+              name="stateAbbreviation"
+              value={searchParams.stateAbbreviation}
+              onChange={handleChange}
+            >
+              {STATE_ABBREVIATIONS.map((abbreviation) => (
+                <option key={abbreviation} value={abbreviation}>
+                  {abbreviation}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label htmlFor="stateFipsCode">State FIPS Code:</label>
+            <select
+              id="stateFipsCode"
+              name="stateFipsCode"
+              value={searchParams.stateFipsCode}
+              onChange={handleChange}
+            >
+              {STATE_FIPS_CODES.map((code) => (
+                <option key={code} value={code}>
+                  {code}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label htmlFor="geoid">Geographic Identifier (GEOID):</label>
+            <input
+              type="text"
+              id="geoid"
+              name="geoid"
+              value={searchParams.geoid}
+              onChange={handleChange}
+              placeholder="GEOID"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="sortBy">Sort By:</label>
+            <select
+              id="sortBy"
+              name="sortBy"
+              value={searchParams.sortBy}
+              onChange={handleChange}
+            >
+              <option value="TOTAL_POPULATION">Total Population</option>
+              <option value="PRICE_DROP">Price Drop</option>
+            </select>
+          </div>
+
+          <div>
+            <label htmlFor="sortOrder">Sort Order:</label>
+            <select
+              id="sortOrder"
+              name="sortOrder"
+              value={searchParams.sortOrder}
+              onChange={handleChange}
+            >
+              <option value="ASC">Ascending</option>
+              <option value="DESC">Descending</option>
+            </select>
+          </div>
+        </form>
+        <button onClick={handleFetchData}>Fetch Data</button>
       </div>
-      <DualAxisChart
-        title="Tampa City: % of Inventory with Price Drops vs Total Supply"
-        lineData={dataPoints}
-        lineSeries="% Price Drops"
-        bar1Data={dataPoints}
-        bar1Series="Total Supply"
-        yaxis1Title="% Price Drops"
-        yaxis2Title="Total Supply"
-        height={SIZE_CONFIG.x.height}
-        width={SIZE_CONFIG.x.width}
-        styleConfig={defaultStyleConfig}
-        // Uncomment to save figure
-        // savePath='tampa_market_price_drops.png'
-      />
-      <div className="mb-32 grid text-center lg:max-w-5xl lg:w-full lg:mb-0 lg:grid-cols-4 lg:text-left"></div>
+
+      <div>
+        {/* {fetchedData && (
+          <DualAxisChart
+            data={Tem}  // Adjust according to the actual data structure
+            styleConfig={defaultStyleConfig}
+            sizeConfig={SIZE_CONFIG}
+          />
+        )} */}
+      </div>
     </main>
   );
 }
-
-export const getStaticProps: GetStaticProps = async () => {
-  try {
-    // Fetch data from API
-    // const response = await fetch('https://api.parcllabs.com/v1/investor_metrics/2887280/purchase_to_sale_ratio?limit=1', {
-    const response = await fetch(
-      "https://api.parcllabs.com/v1/investor_metrics/2887280/purchase_to_sale_ratio?limit=1",
-      {
-        headers: {
-          Authorization: process.env.NEXT_PUBLIC_PARCLLABS_API_KEY || "",
-          Accept: "application/json",
-        },
-      }
-    );
-
-    if (!response.ok) {
-      throw new Error("Failed to fetch data");
-    }
-
-    const data = await response.json();
-    console.log("data", data);
-    // Return fetched data directly
-    return {
-      props: {
-        data,
-      },
-    };
-  } catch (error) {
-    console.error("Error fetching data:", error.message);
-
-    // Return default props or handle error case
-    return {
-      props: {
-        data: {}, // Empty object or appropriate error handling
-      },
-    };
-  }
-};
