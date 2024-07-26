@@ -1,26 +1,19 @@
 import React, { useState } from "react";
 import { Inter } from "next/font/google";
-import useSWR from 'swr';
-import DualAxisChart from "@/charting/default_charts";
+import useSWR from "swr";
+import DataTable from "@/charting/datatable";
 import { defaultStyleConfig, SIZE_CONFIG } from "@/charting/utils";
-import { STATE_ABBREVIATIONS, STATE_FIPS_CODES, LOCATION_TYPES, REGIONS } from "@/config/constants";
+import {
+  STATE_ABBREVIATIONS,
+  STATE_FIPS_CODES,
+  LOCATION_TYPES,
+  REGIONS,
+} from "@/config/constants";
 
 const inter = Inter({ subsets: ["latin"] });
 
 interface Props {
-  data: any;
-}
-
-interface ChartData {
-  date: string[];
-  "% Price Drops": number[];
-  "Total Supply": number[];
-}
-
-interface DataPoint {
-  date: string;
-  "% Price Drops": number;
-  "Total Supply": number;
+  data: any; // Define a more specific type if possible
 }
 
 interface SearchParams {
@@ -40,20 +33,23 @@ interface SearchParams {
 const fetcher = (url: string) => {
   return fetch(url, {
     headers: {
-      'Authorization': `Bearer ${process.env.NEXT_PUBLIC_PARCLLABS_API_KEY}`,
-      'Accept': 'application/json',
-    }
-  }).then(res => res.json());
+      Authorization: `${process.env.NEXT_PUBLIC_PARCLLABS_API_KEY}`,
+      Accept: "application/json",
+    },
+  }).then((res) => res.json());
 };
 
 const buildQueryString = (params: SearchParams) => {
   const queryParams: Record<string, string> = {};
 
   if (params.query) queryParams.query = params.query;
-  if (params.locationType !== 'ALL') queryParams.location_type = params.locationType;
-  if (params.region !== 'ALL') queryParams.region = params.region;
-  if (params.stateAbbreviation !== 'ALL') queryParams.state_abbreviation = params.stateAbbreviation;
-  if (params.stateFipsCode !== 'ALL') queryParams.state_fips_code = params.stateFipsCode;
+  if (params.locationType !== "ALL")
+    queryParams.location_type = params.locationType;
+  if (params.region !== "ALL") queryParams.region = params.region;
+  if (params.stateAbbreviation !== "ALL")
+    queryParams.state_abbreviation = params.stateAbbreviation;
+  if (params.stateFipsCode !== "ALL")
+    queryParams.state_fips_code = params.stateFipsCode;
   if (params.parclId !== null) queryParams.parcl_id = params.parclId.toString();
   if (params.geoid) queryParams.geoid = params.geoid;
   if (params.sortBy) queryParams.sort_by = params.sortBy;
@@ -81,7 +77,9 @@ export default function Home({ data }: Props) {
 
   const [fetchData, setFetchData] = useState<boolean>(false);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
     const { name, value } = e.target;
     setSearchParams((prevParams) => ({
       ...prevParams,
@@ -97,7 +95,7 @@ export default function Home({ data }: Props) {
 
   // Conditionally fetch data based on fetchData state
   const { data: fetchedData, error } = useSWR(
-    fetchData ? `/api/proxy?${queryString}` : null, // Only fetch if fetchData is true
+    fetchData ? `/api/proxy?${queryString}` : null, // Corrected syntax
     fetcher
   );
 
@@ -105,7 +103,9 @@ export default function Home({ data }: Props) {
   if (!fetchedData && fetchData) return <div>Loading...</div>; // Show loading only when fetchData is true
 
   return (
-    <main className={`flex min-h-screen flex-col items-center justify-between p-24 ${inter.className}`}>
+    <main
+      className={`flex min-h-screen flex-col items-center justify-between p-24 ${inter.className}`}
+    >
       <div className="z-10 max-w-5xl w-full items-center justify-between font-mono text-sm lg:flex">
         <form>
           <div>
@@ -146,7 +146,7 @@ export default function Home({ data }: Props) {
             >
               {REGIONS.map((region) => (
                 <option key={region} value={region}>
-                  {region.replace('_', ' ')}
+                  {region.replace("_", " ")}
                 </option>
               ))}
             </select>
@@ -226,9 +226,12 @@ export default function Home({ data }: Props) {
       </div>
 
       <div>
+        <div>
+          <DataTable data={fetchedData?.items || []} />
+        </div>
         {/* {fetchedData && (
           <DualAxisChart
-            data={Tem}  // Adjust according to the actual data structure
+            data={fetchedData} // Adjust according to the actual data structure
             styleConfig={defaultStyleConfig}
             sizeConfig={SIZE_CONFIG}
           />

@@ -1,10 +1,10 @@
 // pages/api/proxy.ts
 
-import type { NextApiRequest, NextApiResponse } from 'next';
+import type { NextApiRequest, NextApiResponse } from "next";
 
 const handler = async (req: NextApiRequest, res: NextApiResponse) => {
   // Define the API endpoint to forward the request to
-  const apiUrl = 'https://api.parcllabs.com/v1/search/markets';
+  const apiUrl = "https://api.parcllabs.com/v1/search/markets";
 
   // Extract query parameters from the request
   const { query } = req;
@@ -18,8 +18,8 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
     const response = await fetch(url.toString(), {
       method: req.method,
       headers: {
-        'Authorization': `${process.env.NEXT_PUBLIC_PARCLLABS_API_KEY}`,
-        'Accept': 'application/json',
+        Authorization: `${process.env.NEXT_PUBLIC_PARCLLABS_API_KEY}`,
+        Accept: "application/json",
       },
     });
 
@@ -30,8 +30,8 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
 
     // Return the response data
     const data = await response.json();
-    console.log('Data:', data); // Debug: log the data received
-    console.log('URL:', url.toString()); // Debug: log the URL used
+    console.log("Data:", data); // Debug: log the data received
+    console.log("URL:", url.toString()); // Debug: log the URL used
     res.status(200).json(data);
   } catch (error) {
     // Handle errors
