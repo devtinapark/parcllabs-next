@@ -11,21 +11,16 @@ function DataTable<T extends object>({ data }: DataTableProps<T>) {
     () =>
       data.length > 0
         ? Object.keys(data[0]).map((key) => ({
-          Header: key.charAt(0).toUpperCase() + key.slice(1), // Capitalize column header
-          accessor: key as keyof T, // The key of the object that will be used as the column
-        }))
+            Header: key.charAt(0).toUpperCase() + key.slice(1), // Capitalize column header
+            accessor: key as keyof T, // The key of the object that will be used as the column
+          }))
         : [], // Return an empty array if data is empty
     [data]
   );
 
   // Create the table instance
-  const {
-    getTableProps,
-    getTableBodyProps,
-    headerGroups,
-    rows,
-    prepareRow
-  } = useTable({ columns, data });
+  const { getTableProps, getTableBodyProps, headerGroups, rows, prepareRow } =
+    useTable({ columns, data });
 
   return (
     <div className="table-container">
