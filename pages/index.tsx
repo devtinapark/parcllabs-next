@@ -1,21 +1,18 @@
 import React, { useState } from "react";
 import { Inter } from "next/font/google";
-import useSWR from "swr";
-import DataTable from "@/charting/datatable";
-import { defaultStyleConfig, SIZE_CONFIG } from "@/charting/utils";
 import {
   STATE_ABBREVIATIONS,
   STATE_FIPS_CODES,
   LOCATION_TYPES,
   REGIONS,
 } from "@/config/constants";
+import { useMutation } from "@tanstack/react-query";
 
 const inter = Inter({ subsets: ["latin"] });
 
 interface Props {
   data: any; // Define a more specific type if possible
 }
-
 interface SearchParams {
   query: string;
   locationType: string;
@@ -30,26 +27,27 @@ interface SearchParams {
   offset: number;
 }
 
-const fetcher = (url: string) => {
-  return fetch(url, {
+const fetcher = async (url: string) => {
+  const response = await fetch(url, {
     headers: {
       Authorization: `${process.env.NEXT_PUBLIC_PARCLLABS_API_KEY}`,
       Accept: "application/json",
     },
-  }).then((res) => res.json());
+  });
+  if (!response.ok) {
+    throw new Error("Network response was not ok");
+  }
+  return response.json();
 };
 
 const buildQueryString = (params: SearchParams) => {
   const queryParams: Record<string, string> = {};
-
   if (params.query) queryParams.query = params.query;
-  if (params.locationType !== "ALL")
-    queryParams.location_type = params.locationType;
-  if (params.region !== "ALL") queryParams.region = params.region;
-  if (params.stateAbbreviation !== "ALL")
+  if (params.locationType) queryParams.location_type = params.locationType;
+  if (params.region) queryParams.region = params.region;
+  if (params.stateAbbreviation)
     queryParams.state_abbreviation = params.stateAbbreviation;
-  if (params.stateFipsCode !== "ALL")
-    queryParams.state_fips_code = params.stateFipsCode;
+  if (params.stateFipsCode) queryParams.state_fips_code = params.stateFipsCode;
   if (params.parclId !== null) queryParams.parcl_id = params.parclId.toString();
   if (params.geoid) queryParams.geoid = params.geoid;
   if (params.sortBy) queryParams.sort_by = params.sortBy;
@@ -63,19 +61,19 @@ const buildQueryString = (params: SearchParams) => {
 export default function Home({ data }: Props) {
   const [searchParams, setSearchParams] = useState<SearchParams>({
     query: "",
-    locationType: "ALL",
-    region: "ALL",
-    stateAbbreviation: "ALL",
-    stateFipsCode: "ALL",
+    locationType: "",
+    region: "",
+    stateAbbreviation: "",
+    stateFipsCode: "",
     parclId: null,
     geoid: "",
-    sortBy: "TOTAL_POPULATION",
-    sortOrder: "DESC",
+    sortBy: "",
+    sortOrder: "",
     limit: 12,
     offset: 0,
   });
 
-  const [fetchData, setFetchData] = useState<boolean>(false);
+  const [queryString, setQueryString] = useState<string>("");
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -88,19 +86,27 @@ export default function Home({ data }: Props) {
   };
 
   const handleFetchData = () => {
-    setFetchData(true); // Trigger data fetching when button is clicked
+    const newQueryString = buildQueryString(searchParams);
+    setQueryString(newQueryString);
+    fetchDataMutation.mutate(newQueryString); // Trigger mutation with updated query string
   };
 
-  const queryString = buildQueryString(searchParams);
+  const fetchDataMutation = useMutation({
+    mutationFn: async (queryString: string) => {
+      const data = await fetcher(`/api/proxy?${queryString}`);
+      return data;
+    },
+    onSuccess: (data) => {
+      console.log("Data fetched successfully:", data);
+      console.log("Success");
+    },
+    onError: (error) => {
+      console.error("Error:", error);
+    },
+  });
 
-  // Conditionally fetch data based on fetchData state
-  const { data: fetchedData, error } = useSWR(
-    fetchData ? `/api/proxy?${queryString}` : null, // Corrected syntax
-    fetcher
-  );
-
-  if (error) return <div>Failed to load data</div>;
-  if (!fetchedData && fetchData) return <div>Loading...</div>; // Show loading only when fetchData is true
+  if (fetchDataMutation.isPending) return <div>Loading...</div>;
+  if (fetchDataMutation.isError) return <div>Failed to load data</div>;
 
   return (
     <main
@@ -221,21 +227,40 @@ export default function Home({ data }: Props) {
               <option value="DESC">Descending</option>
             </select>
           </div>
+          <div>
+            <label htmlFor="limit">Limit:</label>
+            <input
+              type="number"
+              id="limit"
+              name="limit"
+              min="1"
+              max="1000"
+              value={searchParams.limit}
+              onChange={handleChange}
+              placeholder="12"
+            />
+          </div>
+          <div>
+            <label htmlFor="offset">Offset:</label>
+            <input
+              type="number"
+              id="offset"
+              name="offset"
+              min="0"
+              max="1000"
+              value={searchParams.offset}
+              onChange={handleChange}
+              placeholder="0"
+            />
+          </div>
         </form>
         <button onClick={handleFetchData}>Fetch Data</button>
       </div>
 
       <div>
-        <div>
-          <DataTable data={fetchedData?.items || []} />
-        </div>
-        {/* {fetchedData && (
-          <DualAxisChart
-            data={fetchedData} // Adjust according to the actual data structure
-            styleConfig={defaultStyleConfig}
-            sizeConfig={SIZE_CONFIG}
-          />
-        )} */}
+        {fetchDataMutation.isSuccess && (
+          <div>{JSON.stringify(fetchDataMutation.data, null, 2)}</div>
+        )}
       </div>
     </main>
   );
