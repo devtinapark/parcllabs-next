@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import { Tabs, Tab, Box, FormControl, InputLabel, Select, MenuItem, TextField, Button, CircularProgress } from "@mui/material";
 import { STATE_ABBREVIATIONS, STATE_FIPS_CODES, LOCATION_TYPES, REGIONS } from "@/config/constants";
 import { useMutation } from "@tanstack/react-query";
+import { SelectChangeEvent } from '@mui/material';
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -72,9 +73,9 @@ export default function Home({ data }: Props) {
   const [queryString, setQueryString] = useState<string>("");
   const [tabIndex, setTabIndex] = useState(0);
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-  ) => {
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement>
+  ): void => {
     const { name, value } = e.target;
     setSearchParams((prevParams) => ({
       ...prevParams,
@@ -82,6 +83,15 @@ export default function Home({ data }: Props) {
     }));
   };
 
+  const handleSelectChange = (
+    e: SelectChangeEvent<string>
+  ): void => {
+    const { name, value } = e.target;
+    setSearchParams((prevParams) => ({
+      ...prevParams,
+      [name]: value,
+    }));
+  };
   const handleFetchData = () => {
     const newQueryString = buildQueryString(searchParams);
     setQueryString(newQueryString);
@@ -147,7 +157,7 @@ export default function Home({ data }: Props) {
                   label="Search Query"
                   name="query"
                   value={searchParams.query}
-                  onChange={handleChange}
+                  onChange={handleInputChange}
                   placeholder="Ex: New York"
                 />
               </div>
@@ -157,7 +167,7 @@ export default function Home({ data }: Props) {
                   label="Geographic Identifier (GEOID)"
                   name="geoid"
                   value={searchParams.geoid}
-                  onChange={handleChange}
+                  onChange={handleInputChange}
                 />
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -166,7 +176,7 @@ export default function Home({ data }: Props) {
                   <Select
                     name="locationType"
                     value={searchParams.locationType}
-                    onChange={handleChange}
+                    onChange={handleSelectChange}
                   >
                     {LOCATION_TYPES.map((type) => (
                       <MenuItem key={type} value={type}>
@@ -180,7 +190,7 @@ export default function Home({ data }: Props) {
                   <Select
                     name="region"
                     value={searchParams.region}
-                    onChange={handleChange}
+                    onChange={handleSelectChange}
                   >
                     {REGIONS.map((region) => (
                       <MenuItem key={region} value={region}>
@@ -194,7 +204,7 @@ export default function Home({ data }: Props) {
                   <Select
                     name="stateAbbreviation"
                     value={searchParams.stateAbbreviation}
-                    onChange={handleChange}
+                    onChange={handleSelectChange}
                   >
                     {STATE_ABBREVIATIONS.map((abbreviation) => (
                       <MenuItem key={abbreviation} value={abbreviation}>
@@ -208,7 +218,7 @@ export default function Home({ data }: Props) {
                   <Select
                     name="stateFipsCode"
                     value={searchParams.stateFipsCode}
-                    onChange={handleChange}
+                    onChange={handleSelectChange}
                   >
                     {STATE_FIPS_CODES.map((code) => (
                       <MenuItem key={code} value={code}>
@@ -222,7 +232,7 @@ export default function Home({ data }: Props) {
                   <Select
                     name="sortBy"
                     value={searchParams.sortBy}
-                    onChange={handleChange}
+                    onChange={handleSelectChange}
                   >
                     <MenuItem value="TOTAL_POPULATION">Total Population</MenuItem>
                     <MenuItem value="PRICE_DROP">Price Drop</MenuItem>
@@ -233,7 +243,7 @@ export default function Home({ data }: Props) {
                   <Select
                     name="sortOrder"
                     value={searchParams.sortOrder}
-                    onChange={handleChange}
+                    onChange={handleSelectChange}
                   >
                     <MenuItem value="ASC">Ascending</MenuItem>
                     <MenuItem value="DESC">Descending</MenuItem>
@@ -245,7 +255,7 @@ export default function Home({ data }: Props) {
                   label="Limit"
                   name="limit"
                   value={searchParams.limit}
-                  onChange={handleChange}
+                  onChange={handleInputChange}
                   inputProps={{ min: 1, max: 1000 }}
                 />
                 <TextField
@@ -254,7 +264,7 @@ export default function Home({ data }: Props) {
                   label="Offset"
                   name="offset"
                   value={searchParams.offset}
-                  onChange={handleChange}
+                  onChange={handleInputChange}
                   inputProps={{ min: 0, max: 1000 }}
                 />
               </div>
