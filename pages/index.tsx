@@ -1,11 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Inter } from "next/font/google";
-import {
-  STATE_ABBREVIATIONS,
-  STATE_FIPS_CODES,
-  LOCATION_TYPES,
-  REGIONS,
-} from "@/config/constants";
+import { Tabs, Tab, Box, FormControl, InputLabel, Select, MenuItem, TextField, Button, CircularProgress } from "@mui/material";
+import { STATE_ABBREVIATIONS, STATE_FIPS_CODES, LOCATION_TYPES, REGIONS } from "@/config/constants";
 import { useMutation } from "@tanstack/react-query";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -74,6 +70,7 @@ export default function Home({ data }: Props) {
   });
 
   const [queryString, setQueryString] = useState<string>("");
+  const [tabIndex, setTabIndex] = useState(0);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -98,170 +95,206 @@ export default function Home({ data }: Props) {
     },
     onSuccess: (data) => {
       console.log("Data fetched successfully:", data);
-      console.log("Success");
+    },
+    onSettled: () => {
+      setTabIndex(1);
     },
     onError: (error) => {
       console.error("Error:", error);
     },
   });
 
-  if (fetchDataMutation.isPending) return <div>Loading...</div>;
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [tabIndex]);
+
+  if (fetchDataMutation.isPending) {
+    return (
+      <div className="loading-overlay">
+        <CircularProgress />
+      </div>
+    );
+  }
   if (fetchDataMutation.isError) return <div>Failed to load data</div>;
 
   return (
     <main
       className={`flex min-h-screen flex-col items-center justify-between p-24 ${inter.className}`}
     >
-      <div className="z-10 max-w-5xl w-full items-center justify-between font-mono text-sm lg:flex">
-        <form>
-          <div>
-            <label htmlFor="query">Search Query:</label>
-            <input
-              type="text"
-              id="query"
-              name="query"
-              value={searchParams.query}
-              onChange={handleChange}
-              placeholder="Ex: New York"
-            />
+      <Box
+        sx={{
+          width: '100%',
+          maxWidth: 1000, // Increase the max width for the form container
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+        }}
+      >
+        <Tabs
+          value={tabIndex}
+          onChange={(e, newValue) => setTabIndex(newValue)}
+          aria-label="basic tabs example"
+        >
+          <Tab label="Search" />
+          <Tab label="Results" />
+        </Tabs>
+        <TabPanel value={tabIndex} index={0}>
+          <div className="form-container">
+            <form className="space-y-6 p-6 bg-white rounded-lg shadow-lg">
+              <div className="w-full">
+                <TextField
+                  fullWidth
+                  label="Search Query"
+                  name="query"
+                  value={searchParams.query}
+                  onChange={handleChange}
+                  placeholder="Ex: New York"
+                />
+              </div>
+              <div className="w-full">
+                <TextField
+                  fullWidth
+                  label="Geographic Identifier (GEOID)"
+                  name="geoid"
+                  value={searchParams.geoid}
+                  onChange={handleChange}
+                />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <FormControl fullWidth>
+                  <InputLabel>Location Type</InputLabel>
+                  <Select
+                    name="locationType"
+                    value={searchParams.locationType}
+                    onChange={handleChange}
+                  >
+                    {LOCATION_TYPES.map((type) => (
+                      <MenuItem key={type} value={type}>
+                        {type}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+                <FormControl fullWidth>
+                  <InputLabel>Region</InputLabel>
+                  <Select
+                    name="region"
+                    value={searchParams.region}
+                    onChange={handleChange}
+                  >
+                    {REGIONS.map((region) => (
+                      <MenuItem key={region} value={region}>
+                        {region.replace("_", " ")}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+                <FormControl fullWidth>
+                  <InputLabel>State Abbreviation</InputLabel>
+                  <Select
+                    name="stateAbbreviation"
+                    value={searchParams.stateAbbreviation}
+                    onChange={handleChange}
+                  >
+                    {STATE_ABBREVIATIONS.map((abbreviation) => (
+                      <MenuItem key={abbreviation} value={abbreviation}>
+                        {abbreviation}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+                <FormControl fullWidth>
+                  <InputLabel>State FIPS Code</InputLabel>
+                  <Select
+                    name="stateFipsCode"
+                    value={searchParams.stateFipsCode}
+                    onChange={handleChange}
+                  >
+                    {STATE_FIPS_CODES.map((code) => (
+                      <MenuItem key={code} value={code}>
+                        {code}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+                <FormControl fullWidth>
+                  <InputLabel>Sort By</InputLabel>
+                  <Select
+                    name="sortBy"
+                    value={searchParams.sortBy}
+                    onChange={handleChange}
+                  >
+                    <MenuItem value="TOTAL_POPULATION">Total Population</MenuItem>
+                    <MenuItem value="PRICE_DROP">Price Drop</MenuItem>
+                  </Select>
+                </FormControl>
+                <FormControl fullWidth>
+                  <InputLabel>Sort Order</InputLabel>
+                  <Select
+                    name="sortOrder"
+                    value={searchParams.sortOrder}
+                    onChange={handleChange}
+                  >
+                    <MenuItem value="ASC">Ascending</MenuItem>
+                    <MenuItem value="DESC">Descending</MenuItem>
+                  </Select>
+                </FormControl>
+                <TextField
+                  fullWidth
+                  type="number"
+                  label="Limit"
+                  name="limit"
+                  value={searchParams.limit}
+                  onChange={handleChange}
+                  inputProps={{ min: 1, max: 1000 }}
+                />
+                <TextField
+                  fullWidth
+                  type="number"
+                  label="Offset"
+                  name="offset"
+                  value={searchParams.offset}
+                  onChange={handleChange}
+                  inputProps={{ min: 0, max: 1000 }}
+                />
+              </div>
+              <div className="w-full">
+                <Button
+                  variant="contained"
+                  color="primary"
+                  onClick={handleFetchData}
+                  className="w-full py-3 text-lg"
+                >
+                  Fetch Data
+                </Button>
+              </div>
+            </form>
           </div>
-
-          <div>
-            <label htmlFor="locationType">Location Type:</label>
-            <select
-              id="locationType"
-              name="locationType"
-              value={searchParams.locationType}
-              onChange={handleChange}
-            >
-              {LOCATION_TYPES.map((type) => (
-                <option key={type} value={type}>
-                  {type}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label htmlFor="region">Region:</label>
-            <select
-              id="region"
-              name="region"
-              value={searchParams.region}
-              onChange={handleChange}
-            >
-              {REGIONS.map((region) => (
-                <option key={region} value={region}>
-                  {region.replace("_", " ")}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label htmlFor="stateAbbreviation">State Abbreviation:</label>
-            <select
-              id="stateAbbreviation"
-              name="stateAbbreviation"
-              value={searchParams.stateAbbreviation}
-              onChange={handleChange}
-            >
-              {STATE_ABBREVIATIONS.map((abbreviation) => (
-                <option key={abbreviation} value={abbreviation}>
-                  {abbreviation}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label htmlFor="stateFipsCode">State FIPS Code:</label>
-            <select
-              id="stateFipsCode"
-              name="stateFipsCode"
-              value={searchParams.stateFipsCode}
-              onChange={handleChange}
-            >
-              {STATE_FIPS_CODES.map((code) => (
-                <option key={code} value={code}>
-                  {code}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label htmlFor="geoid">Geographic Identifier (GEOID):</label>
-            <input
-              type="text"
-              id="geoid"
-              name="geoid"
-              value={searchParams.geoid}
-              onChange={handleChange}
-              placeholder="GEOID"
-            />
-          </div>
-
-          <div>
-            <label htmlFor="sortBy">Sort By:</label>
-            <select
-              id="sortBy"
-              name="sortBy"
-              value={searchParams.sortBy}
-              onChange={handleChange}
-            >
-              <option value="TOTAL_POPULATION">Total Population</option>
-              <option value="PRICE_DROP">Price Drop</option>
-            </select>
-          </div>
-
-          <div>
-            <label htmlFor="sortOrder">Sort Order:</label>
-            <select
-              id="sortOrder"
-              name="sortOrder"
-              value={searchParams.sortOrder}
-              onChange={handleChange}
-            >
-              <option value="ASC">Ascending</option>
-              <option value="DESC">Descending</option>
-            </select>
-          </div>
-          <div>
-            <label htmlFor="limit">Limit:</label>
-            <input
-              type="number"
-              id="limit"
-              name="limit"
-              min="1"
-              max="1000"
-              value={searchParams.limit}
-              onChange={handleChange}
-              placeholder="12"
-            />
-          </div>
-          <div>
-            <label htmlFor="offset">Offset:</label>
-            <input
-              type="number"
-              id="offset"
-              name="offset"
-              min="0"
-              max="1000"
-              value={searchParams.offset}
-              onChange={handleChange}
-              placeholder="0"
-            />
-          </div>
-        </form>
-        <button onClick={handleFetchData}>Fetch Data</button>
-      </div>
-
-      <div>
-        {fetchDataMutation.isSuccess && (
-          <div>{JSON.stringify(fetchDataMutation.data, null, 2)}</div>
-        )}
-      </div>
+        </TabPanel>
+        <TabPanel value={tabIndex} index={1}>
+          {fetchDataMutation.isSuccess && (
+            <pre>{JSON.stringify(fetchDataMutation.data.items, null, 2)}</pre>
+          )}
+        </TabPanel>
+      </Box>
     </main>
+  );
+}
+
+function TabPanel(props: { children?: React.ReactNode; index: number; value: number }) {
+  const { children, value, index } = props;
+  return (
+    <div
+      role="tabpanel"
+      hidden={value !== index}
+      id={`tab-panel-${index}`}
+      aria-labelledby={`tab-${index}`}
+    >
+      {value === index && (
+        <Box sx={{ p: 3 }}>
+          {children}
+        </Box>
+      )}
+    </div>
   );
 }

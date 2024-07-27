@@ -10,6 +10,9 @@
     "format": "npx prettier --write \"**/*.js\" \"**/*.css\" \"**/*.ts\" \"**/*.tsx\" \"**/*.json\""
   },
   "dependencies": {
+    "@emotion/react": "^11.13.0",
+    "@emotion/styled": "^11.13.0",
+    "@mui/material": "^5.16.5",
     "@tanstack/react-query": "^5.51.15",
     "@tanstack/react-query-devtools": "^5.51.15",
     "next": "14.2.5",

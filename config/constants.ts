@@ -1,4 +1,5 @@
 export const STATE_ABBREVIATIONS = [
+  "",
   "ALL",
   "AK",
   "AL",
@@ -53,6 +54,7 @@ export const STATE_ABBREVIATIONS = [
 ];
 
 export const STATE_FIPS_CODES = [
+  "",
   "ALL",
   "01",
   "02",
@@ -108,6 +110,7 @@ export const STATE_FIPS_CODES = [
 ];
 
 export const LOCATION_TYPES = [
+  "",
   "ALL",
   "COUNTY",
   "CITY",
@@ -118,6 +121,7 @@ export const LOCATION_TYPES = [
   "CBSA",
 ];
 export const REGIONS = [
+  "",
   "EAST_NORTH_CENTRAL",
   "EAST_SOUTH_CENTRAL",
   "MIDDLE_ATLANTIC",
