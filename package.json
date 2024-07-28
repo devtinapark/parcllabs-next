@@ -19,6 +19,7 @@
     "plotly.js": "^2.34.0",
     "prettier": "^3.3.3",
     "react": "^18",
+    "react-csv": "^2.2.2",
     "react-dom": "^18",
     "react-plotly.js": "^2.6.0"
   },
@@ -26,6 +27,7 @@
     "@tanstack/eslint-plugin-query": "^5.51.15",
     "@types/node": "^20",
     "@types/react": "^18",
+    "@types/react-csv": "^1.1.10",
     "@types/react-dom": "^18",
     "@types/react-table": "^7.7.20",
     "eslint": "^8",

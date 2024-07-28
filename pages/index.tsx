@@ -1,9 +1,33 @@
 import React, { useState, useEffect } from "react";
 import { Inter } from "next/font/google";
-import { Tabs, Tab, Box, FormControl, InputLabel, Select, MenuItem, TextField, Button, CircularProgress } from "@mui/material";
-import { STATE_ABBREVIATIONS, STATE_FIPS_CODES, LOCATION_TYPES, REGIONS } from "@/config/constants";
+import {
+  Tabs,
+  Tab,
+  Box,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  TextField,
+  Button,
+  CircularProgress,
+} from "@mui/material";
+import Table from "@mui/material/Table";
+import TableBody from "@mui/material/TableBody";
+import TableCell from "@mui/material/TableCell";
+import TableContainer from "@mui/material/TableContainer";
+import TableHead from "@mui/material/TableHead";
+import TableRow from "@mui/material/TableRow";
+import Paper from "@mui/material/Paper";
+import {
+  STATE_ABBREVIATIONS,
+  STATE_FIPS_CODES,
+  LOCATION_TYPES,
+  REGIONS,
+} from "@/config/constants";
 import { useMutation } from "@tanstack/react-query";
-import { SelectChangeEvent } from '@mui/material';
+import { SelectChangeEvent } from "@mui/material";
+import { CSVLink } from "react-csv";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -23,6 +47,38 @@ interface SearchParams {
   limit: number;
   offset: number;
 }
+interface Item {
+  parcl_id: number;
+  country: string;
+  geoid: string;
+  state_fips_code: string | null;
+  name: string;
+  state_abbreviation: string | null;
+  region: string | null;
+  location_type: string;
+  total_population: number;
+  median_income: number;
+  parcl_exchange_market: number;
+  pricefeed_market: number;
+  case_shiller_10_market: number;
+  case_shiller_20_market: number;
+}
+
+interface FetchDataMutationResult {
+  items: Item[];
+  total: number;
+  limit: number;
+  offset: number;
+  links: {
+    first: string;
+    last: string;
+    self: string;
+    next: string | null;
+    prev: string | null;
+  };
+}
+
+type FetchDataError = Error;
 
 const fetcher = async (url: string) => {
   const response = await fetch(url, {
@@ -73,9 +129,7 @@ export default function Home({ data }: Props) {
   const [queryString, setQueryString] = useState<string>("");
   const [tabIndex, setTabIndex] = useState(0);
 
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement>
-  ): void => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
     const { name, value } = e.target;
     setSearchParams((prevParams) => ({
       ...prevParams,
@@ -83,9 +137,7 @@ export default function Home({ data }: Props) {
     }));
   };
 
-  const handleSelectChange = (
-    e: SelectChangeEvent<string>
-  ): void => {
+  const handleSelectChange = (e: SelectChangeEvent<string>): void => {
     const { name, value } = e.target;
     setSearchParams((prevParams) => ({
       ...prevParams,
@@ -98,7 +150,7 @@ export default function Home({ data }: Props) {
     fetchDataMutation.mutate(newQueryString); // Trigger mutation with updated query string
   };
 
-  const fetchDataMutation = useMutation({
+  const fetchDataMutation = useMutation<FetchDataMutationResult, FetchDataError, string>({
     mutationFn: async (queryString: string) => {
       const data = await fetcher(`/api/proxy?${queryString}`);
       return data;
@@ -115,7 +167,7 @@ export default function Home({ data }: Props) {
   });
 
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }, [tabIndex]);
 
   if (fetchDataMutation.isPending) {
@@ -133,11 +185,11 @@ export default function Home({ data }: Props) {
     >
       <Box
         sx={{
-          width: '100%',
+          width: "100%",
           maxWidth: 1000, // Increase the max width for the form container
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
         }}
       >
         <Tabs
@@ -234,7 +286,9 @@ export default function Home({ data }: Props) {
                     value={searchParams.sortBy}
                     onChange={handleSelectChange}
                   >
-                    <MenuItem value="TOTAL_POPULATION">Total Population</MenuItem>
+                    <MenuItem value="TOTAL_POPULATION">
+                      Total Population
+                    </MenuItem>
                     <MenuItem value="PRICE_DROP">Price Drop</MenuItem>
                   </Select>
                 </FormControl>
@@ -283,7 +337,127 @@ export default function Home({ data }: Props) {
         </TabPanel>
         <TabPanel value={tabIndex} index={1}>
           {fetchDataMutation.isSuccess && (
-            <pre>{JSON.stringify(fetchDataMutation.data.items, null, 2)}</pre>
+            <>
+              <TableContainer component={Paper}>
+                <Table
+                  sx={{ minWidth: 650 }}
+                  size="small"
+                  aria-label="a dense table"
+                >
+                  <TableHead>
+                    <TableRow>
+                      <TableCell className="text-xs" align="left">
+                        parcl_id
+                      </TableCell>
+                      <TableCell className="text-xs" align="left">
+                        country
+                      </TableCell>
+                      <TableCell className="text-xs" align="left">
+                        state_fips_code
+                      </TableCell>
+                      <TableCell className="text-xs" align="left">
+                        geoid
+                      </TableCell>
+                      <TableCell className="text-xs" align="left">
+                        name
+                      </TableCell>
+                      <TableCell className="text-xs" align="left">
+                        state_abbreviation
+                      </TableCell>
+                      <TableCell className="text-xs" align="left">
+                        region
+                      </TableCell>
+                      <TableCell className="text-xs" align="left">
+                        location_type
+                      </TableCell>
+                      <TableCell className="text-xs" align="left">
+                        total_population
+                      </TableCell>
+                      <TableCell className="text-xs" align="left">
+                        median_income
+                      </TableCell>
+                      <TableCell className="text-xs" align="left">
+                        parcl_exchange_market
+                      </TableCell>
+                      <TableCell className="text-xs" align="left">
+                        pricefeed_market
+                      </TableCell>
+                      <TableCell className="text-xs" align="left">
+                        case_shiller_10_market
+                      </TableCell>
+                      <TableCell className="text-xs" align="left">
+                        case_shiller_20_market
+                      </TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {fetchDataMutation.data.items.map((row) => (
+                      <TableRow
+                        key={row.parcl_id}
+                        // sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
+                      >
+                        <TableCell
+                          className="text-xs"
+                          align="left"
+                          component="th"
+                          scope="row"
+                        >
+                          {row.parcl_id}
+                        </TableCell>
+                        <TableCell className="text-xs" align="left">
+                          {row.country}
+                        </TableCell>
+                        <TableCell className="text-xs" align="left">
+                          {row.geoid}
+                        </TableCell>
+                        <TableCell className="text-xs" align="left">
+                          {row.state_fips_code}
+                        </TableCell>
+                        <TableCell className="text-xs" align="left">
+                          {row.name}
+                        </TableCell>
+                        <TableCell className="text-xs" align="left">
+                          {row.state_abbreviation}
+                        </TableCell>
+                        <TableCell className="text-xs" align="left">
+                          {row.region}
+                        </TableCell>
+                        <TableCell className="text-xs" align="left">
+                          {row.location_type}
+                        </TableCell>
+                        <TableCell className="text-xs" align="left">
+                          {row.total_population}
+                        </TableCell>
+                        <TableCell className="text-xs" align="left">
+                          {row.median_income}
+                        </TableCell>
+                        <TableCell className="text-xs" align="left">
+                          {row.parcl_exchange_market}
+                        </TableCell>
+                        <TableCell className="text-xs" align="left">
+                          {row.pricefeed_market}
+                        </TableCell>
+                        <TableCell className="text-xs" align="left">
+                          {row.case_shiller_10_market}
+                        </TableCell>
+                        <TableCell className="text-xs" align="left">
+                          {row.case_shiller_20_market}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+              <div className="flex center w-full m-12 text-center">
+                <CSVLink
+                  data={fetchDataMutation.data.items}
+                  filename={"my-data.csv"}
+                  className="w-72 py-3 text-lg m-auto export-button "
+                >
+                  EXPORT DATA TO CSV
+                </CSVLink>
+              </div>
+            </>
           )}
         </TabPanel>
       </Box>
@@ -291,8 +465,13 @@ export default function Home({ data }: Props) {
   );
 }
 
-function TabPanel(props: { children?: React.ReactNode; index: number; value: number }) {
+function TabPanel(props: {
+  children?: React.ReactNode;
+  index: number;
+  value: number;
+}) {
   const { children, value, index } = props;
+
   return (
     <div
       role="tabpanel"
@@ -300,11 +479,7 @@ function TabPanel(props: { children?: React.ReactNode; index: number; value: num
       id={`tab-panel-${index}`}
       aria-labelledby={`tab-${index}`}
     >
-      {value === index && (
-        <Box sx={{ p: 3 }}>
-          {children}
-        </Box>
-      )}
+      {value === index && <Box sx={{ p: 3 }}>{children}</Box>}
     </div>
   );
 }
