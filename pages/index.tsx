@@ -32,7 +32,7 @@ import { CSVLink } from "react-csv";
 const inter = Inter({ subsets: ["latin"] });
 
 interface Props {
-  data: any; // Define a more specific type if possible
+  data: any;
 }
 interface SearchParams {
   query: string;
@@ -150,7 +150,11 @@ export default function Home({ data }: Props) {
     fetchDataMutation.mutate(newQueryString); // Trigger mutation with updated query string
   };
 
-  const fetchDataMutation = useMutation<FetchDataMutationResult, FetchDataError, string>({
+  const fetchDataMutation = useMutation<
+    FetchDataMutationResult,
+    FetchDataError,
+    string
+  >({
     mutationFn: async (queryString: string) => {
       const data = await fetcher(`/api/proxy?${queryString}`);
       return data;
@@ -186,7 +190,7 @@ export default function Home({ data }: Props) {
       <Box
         sx={{
           width: "100%",
-          maxWidth: 1000, // Increase the max width for the form container
+          maxWidth: 1000,
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
@@ -338,7 +342,7 @@ export default function Home({ data }: Props) {
         <TabPanel value={tabIndex} index={1}>
           {fetchDataMutation.isSuccess && (
             <>
-              <TableContainer component={Paper}>
+              <TableContainer className="table-container" component={Paper}>
                 <Table
                   sx={{ minWidth: 650 }}
                   size="small"
@@ -448,7 +452,7 @@ export default function Home({ data }: Props) {
                   </TableBody>
                 </Table>
               </TableContainer>
-              <div className="flex center w-full m-12 text-center">
+              <div className="export-button-container">
                 <CSVLink
                   data={fetchDataMutation.data.items}
                   filename={"my-data.csv"}
